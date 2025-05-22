@@ -2,21 +2,23 @@
 
 import React from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { CustomNodeData } from './CustomNode'; // Import CustomNodeData
+import { CustomNodeData } from './CustomNode'; // Assuming CustomNodeData is in the same folder
 
 // StartNode should only have a source handle (it's the beginning)
 const StartNode: React.FC<NodeProps<CustomNodeData>> = ({ data, isConnectable }) => {
   return (
-    <div className="w-40 shadow-md rounded-md bg-sky-500 text-white border-2 border-sky-700">
-      <div className="p-3 border-b border-sky-600 font-semibold text-center">
-        {data.label || 'Start'}
+    <div 
+      className="bg-gradient-to-br from-green-500 to-green-600 text-white shadow-xl rounded-lg overflow-hidden w-48 h-24 flex flex-col justify-center items-center border-2 border-green-700"
+    >
+      <div className="p-3 text-center">
+        <p className="text-sm font-semibold tracking-wide uppercase">Start</p>
+        <p className="text-lg font-bold truncate" title={data.label}>{data.label || 'Start Flow'}</p>
       </div>
-      {/* No specific content for StartNode needed in the body yet */}
       <Handle 
         type="source" 
         position={Position.Right} 
         isConnectable={isConnectable} 
-        className="!bg-green-500 w-3 h-3 border-2 border-white rounded-full"
+        className="!bg-white !w-3 !h-3 !border-2 !border-green-700 !rounded-full hover:!bg-green-200 transition-all duration-150"
       />
     </div>
   );

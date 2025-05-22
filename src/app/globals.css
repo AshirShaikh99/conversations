@@ -1,26 +1,270 @@
-@import "tailwindcss";
+@import "tailwindcss/preflight";
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --foreground-rgb: 255, 255, 255; /* Changed for dark theme base */
+  --background-start-rgb: 17, 24, 39; /* Darker gray for a modern, sleek background */
+  --background-end-rgb: 31, 41, 55;   /* Subtle gradient end for dark theme */
+
+  /* Modern & Vibrant color palette - NEW */
+  --primary-color: #3b82f6; /* Blue-500 */
+  --primary-color-hover: #2563eb; /* Blue-600 */
+  --secondary-color: #10b981; /* Emerald-500 */
+  --secondary-color-hover: #059669; /* Emerald-600 */
+  --accent-color: #f59e0b; /* Amber-500 */
+  --accent-color-hover: #d97706; /* Amber-600 */
+  
+  --neutral-color-lightest: #f9fafb; /* Gray-50 - Keep for light UI elements if needed */
+  --neutral-color-light: #4b5563;    /* Gray-600 (Darker for dark theme components) */
+  --neutral-color-medium: #6b7280; /* Gray-500 (Darker) */
+  --neutral-color-dark: #9ca3af;   /* Gray-400 (Lighter for text on dark backgrounds) */
+  --neutral-color-darkest: #d1d5db;/* Gray-300 (Lighter for borders/dividers) */
+  
+  --text-color-primary: #f3f4f6;    /* Gray-100 (Light text for dark backgrounds) */
+  --text-color-secondary: #d1d5db;  /* Gray-300 */
+  --text-color-muted: #9ca3af;    /* Gray-400 */
+
+  --border-color: #4b5563; /* Gray-600 (Darker border for dark theme) */
+  --ring-color-focus: rgba(59, 130, 246, 0.6); /* Blue-500 with opacity */
+
+  --card-background: #1f2937; /* Gray-800 (Dark card background) */
+  --card-border: var(--border-color);
+  --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.08); /* Softer shadow for dark theme */
+  --card-shadow-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.15), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+
+  /* Node specific colors */
+  --node-background: #27272a; /* Zinc-800 */
+  --node-border-color: var(--primary-color);
+  --node-text-color: var(--text-color-primary);
+  --node-label-background: var(--primary-color);
+  --node-label-text-color: white;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
+/* Dark mode color scheme (optional, can be uncommented and implemented with a toggle) */
+/*
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 20, 20, 30; 
+    --background-end-rgb: 10, 10, 15;
+    --primary-color: #6366f1; 
+    --secondary-color: #34d399; 
+    --accent-color: #f472b6; 
+    --neutral-color-light: #374151; 
+    --neutral-color-dark: #d1d5db;  
+    --text-color-primary: #f3f4f6; 
+    --text-color-secondary: #9ca3af; 
+  }
+}
+*/
+
+body {
+  color: var(--text-color-primary); /* Updated */
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+  font-family: 'Inter UI', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* Added Inter UI */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .smooth-scroll {
+    scroll-behavior: smooth;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom scrollbar for a sleeker look */
+::-webkit-scrollbar {
+  width: 8px; /* Slightly wider */
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(var(--background-start-rgb)); /* Match background */
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--neutral-color-medium);
+  border-radius: 10px;
+  border: 2px solid rgb(var(--background-start-rgb)); /* Add border to thumb */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color); /* Use primary color on hover */
+}
+
+/* React Flow specific overrides for a cleaner look */
+.react-flow__controls {
+  box-shadow: var(--card-shadow);
+  border-radius: 0.5rem; 
+  background-color: var(--card-background); /* Darker controls */
+  border: 1px solid var(--border-color); /* Add border */
+}
+
+.react-flow__controls-button {
+  background-color: transparent; /* Transparent background */
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-color-secondary);
+  padding: 0.5rem;
+}
+.react-flow__controls-button svg {
+  fill: currentColor; /* Ensure SVG picks up text color */
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+.react-flow__controls-button:hover {
+  background-color: var(--primary-color-hover); /* Use primary hover color */
+  color: var(--text-color-primary);
+}
+
+.react-flow__minimap {
+  border-radius: 0.5rem;
+  box-shadow: var(--card-shadow);
+  background-color: var(--card-background); /* Darker minimap */
+  border: 1px solid var(--border-color); /* Add border */
+}
+
+.react-flow__background {
+  background-color: rgb(var(--background-start-rgb)); 
+}
+
+.react-flow__node {
+  background-color: var(--node-background) !important;
+  color: var(--node-text-color) !important;
+  border: 1px solid var(--node-border-color) !important;
+  border-radius: 0.375rem; /* Tailwind's rounded-md */
+  box-shadow: var(--card-shadow) !important;
+}
+
+.react-flow__node-input, .react-flow__node-default, .react-flow__node-output {
+    background-color: var(--node-background) !important;
+    color: var(--node-text-color) !important;
+    border: 1px solid var(--node-border-color) !important;
+}
+
+.react-flow__node .react-flow__handle {
+  background: var(--primary-color) !important;
+  border-color: var(--neutral-color-lightest) !important;
+  width: 10px !important;
+  height: 10px !important;
+}
+
+/* General input styling for consistency - applies to PropertiesPanel inputs etc. */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+textarea,
+select {
+  color: var(--text-color-primary);
+  background-color: var(--neutral-color-light); /* Darker input fields */
+  border: 1px solid var(--border-color);
+  border-radius: 0.375rem; /* rounded-md */
+  padding: 0.5rem 0.75rem;
+  width: 100%; /* Ensure inputs take full width in their containers */
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--ring-color-focus);
+}
+
+input[type="text"]::placeholder,
+textarea::placeholder {
+  color: var(--text-color-muted);
+  opacity: 0.7;
+}
+
+/* Styling for draggable items in the sidebar */
+.sidebar-node-item {
+  background-color: var(--neutral-color-light);
+  color: var(--text-color-primary);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border-color);
+  cursor: grab;
+  text-align: center;
+  font-weight: 500;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sidebar-node-item:hover {
+  background-color: var(--primary-color);
+  color: white;
+  box-shadow: var(--card-shadow-hover);
+}
+
+/* Custom node label styling - example for StartNode */
+.custom-node-label {
+  background-color: var(--node-label-background);
+  color: var(--node-label-text-color);
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-bottom: 0.5rem; /* Add some space below the label */
+}
+
+/* Ensure properties panel also uses dark theme */
+.properties-panel {
+  background-color: var(--card-background);
+  color: var(--text-color-primary);
+  border-left: 1px solid var(--border-color);
+}
+.properties-panel h3 {
+  color: var(--primary-color);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+.properties-panel label {
+  color: var(--text-color-secondary);
+  font-size: 0.875rem; /* text-sm */
+  margin-bottom: 0.25rem;
+  display: block;
+}
+
+/* Additional global styles */
+.button-primary {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+.button-primary:hover {
+    background-color: var(--primary-color-hover);
+}
+
+.button-secondary {
+    background-color: var(--secondary-color);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+.button-secondary:hover {
+    background-color: var(--secondary-color-hover);
 }

@@ -4,37 +4,51 @@ import React from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { CustomNodeData } from './CustomNode';
 
-// ConditionNode might have multiple output paths based on conditions
-// For now, one source handle. Later, we can make this dynamic or add more.
+// interface ConditionNodeData extends CustomNodeData {
+//   conditionLogic?: string;
+// }
+
 const ConditionNode: React.FC<NodeProps<CustomNodeData>> = ({ data, isConnectable }) => {
   return (
-    <div className="w-48 shadow-md rounded-md bg-white border-2 border-purple-500">
-      <div className="p-3 border-b border-purple-400 font-semibold bg-purple-500 text-white">
-        {data.label || 'Condition'}
+    <div 
+      className="bg-white shadow-lg rounded-lg w-64 border-2 border-purple-500 hover:border-purple-600 transition-colors duration-150"
+    >
+      <div className="p-4 border-b border-gray-200">
+        <p className="text-sm font-semibold text-purple-700 tracking-wide uppercase">Condition</p>
+        <p className="text-lg font-bold text-gray-800 truncate" title={data.label}>{data.label || 'Condition Node'}</p>
       </div>
-      <div className="p-3 text-sm">
-        <p className="text-gray-700">Branch on user input:</p>
-        {/* Placeholder for condition editing UI */}
-        <p className="text-xs text-gray-500 italic mt-1">(e.g., if intent is &apos;order_pizza&apos;)</p>
+      <div className="p-4 text-sm text-gray-700 space-y-1 bg-gray-50">
+        <p className="font-medium text-gray-600">Logic:</p>
+        <p className="italic text-gray-500 break-words min-h-[20px] max-h-24 overflow-y-auto">
+          {data.conditionLogic || <span className="text-gray-400">No logic set...</span>}
+        </p>
       </div>
-      <Handle type="target" position={Position.Left} isConnectable={isConnectable} className="!bg-gray-400 w-3 h-3" />
-      {/* We might have multiple source handles for different conditions */}
+      {/* Handles for ConditionNode: one target, multiple sources (e.g., true/false paths) */}
       <Handle 
-        type="source" 
-        id="a" // Example ID for a condition path
-        position={Position.Right} 
+        type="target" 
+        position={Position.Left} 
         isConnectable={isConnectable} 
-        className="!bg-gray-400 w-3 h-3"
-        style={{ top: '30%' }} // Adjust position for multiple handles if needed
+        className="!bg-purple-500 !w-3 !h-3 !border-2 !border-white !rounded-full hover:!bg-purple-400"
       />
-       <Handle 
+      <Handle 
+        id="true"
         type="source" 
-        id="b" // Example ID for another condition path
         position={Position.Right} 
+        style={{ top: '35%' }} // Adjust position for multiple handles
         isConnectable={isConnectable} 
-        className="!bg-gray-400 w-3 h-3"
-        style={{ top: '70%' }} // Adjust position for multiple handles if needed
+        className="!bg-purple-500 !w-3 !h-3 !border-2 !border-white !rounded-full hover:!bg-purple-400"
       />
+      <Handle 
+        id="false"
+        type="source" 
+        position={Position.Right} 
+        style={{ top: '65%' }} // Adjust position for multiple handles
+        isConnectable={isConnectable} 
+        className="!bg-purple-500 !w-3 !h-3 !border-2 !border-white !rounded-full hover:!bg-purple-400"
+      />
+      {/* Labels for source handles */}
+      <div className="absolute right-[-30px] top-[calc(35%-8px)] text-xs text-purple-700 font-medium">True</div>
+      <div className="absolute right-[-35px] top-[calc(65%-8px)] text-xs text-purple-700 font-medium">False</div>
     </div>
   );
 };

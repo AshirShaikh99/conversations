@@ -4,24 +4,23 @@ import React from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { CustomNodeData } from './CustomNode';
 
-interface MessageNodeData extends CustomNodeData {
-  prompt?: string;
-}
-
-const MessageNode: React.FC<NodeProps<MessageNodeData>> = ({ data, isConnectable }) => {
+const MessageNode: React.FC<NodeProps<CustomNodeData>> = ({ data, isConnectable }) => {
   return (
-    <div className="w-48 shadow-md rounded-md bg-white border-2 border-blue-500">
-      <div className="p-3 border-b border-blue-400 font-semibold bg-blue-500 text-white">
-        {data.label || 'Message'}
+    <div 
+      className="bg-white shadow-lg rounded-lg w-64 border-2 border-indigo-500 hover:border-indigo-600 transition-colors duration-150"
+    >
+      <div className="p-4 border-b border-gray-200">
+        <p className="text-sm font-semibold text-indigo-700 tracking-wide uppercase">Message</p>
+        <p className="text-lg font-bold text-gray-800 truncate" title={data.label}>{data.label || 'Message Node'}</p>
       </div>
-      <div className="p-3 text-sm">
-        <p className="text-gray-700">AI Speaks:</p>
-        <p className="font-mono text-xs bg-gray-100 p-2 rounded mt-1 truncate" title={data.prompt}>
-          {data.prompt || 'No prompt set'}
+      <div className="p-4 text-sm text-gray-700 space-y-1 bg-gray-50">
+        <p className="font-medium text-gray-600">AI Speaks:</p>
+        <p className="italic text-gray-500 break-words min-h-[20px] max-h-28 overflow-y-auto">
+          {data.prompt || <span className="text-gray-400">No prompt set...</span>}
         </p>
       </div>
-      <Handle type="target" position={Position.Left} isConnectable={isConnectable} className="!bg-gray-400 w-3 h-3" />
-      <Handle type="source" position={Position.Right} isConnectable={isConnectable} className="!bg-gray-400 w-3 h-3" />
+      <Handle type="target" position={Position.Left} isConnectable={isConnectable} className="!bg-indigo-500 !w-3 !h-3 !border-2 !border-white !rounded-full hover:!bg-indigo-400" />
+      <Handle type="source" position={Position.Right} isConnectable={isConnectable} className="!bg-indigo-500 !w-3 !h-3 !border-2 !border-white !rounded-full hover:!bg-indigo-400" />
     </div>
   );
 };

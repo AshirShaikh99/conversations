@@ -13,9 +13,9 @@ interface PropertiesPanelProps {
 export default function PropertiesPanel({ selectedNode, onUpdateNodeData }: PropertiesPanelProps) {
   if (!selectedNode) {
     return (
-      <aside className="w-80 bg-gray-100 p-4 border-l border-gray-300">
-        <h2 className="text-lg font-semibold mb-4">Properties</h2>
-        <p className="text-sm text-gray-500">Select a node to edit its properties.</p>
+      <aside className="w-96 p-6 shadow-lg properties-panel">
+        <h3 className="text-xl font-semibold mb-6">Properties</h3>
+        <p className="text-sm text-text-color-muted">Select a node to view and edit its properties.</p>
       </aside>
     );
   }
@@ -24,20 +24,21 @@ export default function PropertiesPanel({ selectedNode, onUpdateNodeData }: Prop
     onUpdateNodeData(selectedNode.id, { label: event.target.value });
   };
 
-  const handlePromptChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    // Ensure data object exists
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleDataChange = (key: keyof CustomNodeData, value: any) => {
+    // Ensure data object exists and preserve other data properties
     const currentData = selectedNode.data || {};
-    onUpdateNodeData(selectedNode.id, { ...currentData, prompt: event.target.value });
+    onUpdateNodeData(selectedNode.id, { ...currentData, [key]: value });
   };
 
   return (
-    <aside className="w-80 bg-gray-100 p-4 border-l border-gray-300 overflow-y-auto">
-      <h2 className="text-lg font-semibold mb-4 sticky top-0 bg-gray-100 pb-2 z-10">
-        Properties: {selectedNode.data.label || selectedNode.type}
-      </h2>
-      <div className="space-y-4">
+    <aside className="w-96 p-6 shadow-lg overflow-y-auto properties-panel">
+      <h3 className="text-xl font-semibold mb-6 sticky top-0 pb-3 z-10 border-b properties-panel-header">
+        Properties: <span className="text-primary-color font-semibold">{selectedNode.data.label || selectedNode.type}</span>
+      </h3>
+      <div className="space-y-6">
         <div>
-          <label htmlFor="nodeLabel" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="nodeLabel" className="block text-sm font-medium text-text-color-secondary mb-1.5">
             Label
           </label>
           <Input
@@ -45,52 +46,69 @@ export default function PropertiesPanel({ selectedNode, onUpdateNodeData }: Prop
             type="text"
             value={selectedNode.data.label || ''}
             onChange={handleLabelChange}
-            className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder="Enter node label"
+            className="w-full"
           />
         </div>
 
         {selectedNode.type === 'messageNode' && (
           <div>
-            <label htmlFor="nodePrompt" className="block text-sm font-medium text-gray-700 mb-1">
-              Prompt
+            <label htmlFor="nodePrompt" className="block text-sm font-medium text-text-color-secondary mb-1.5">
+              AI Prompt
             </label>
-            <Input
+            <textarea
               id="nodePrompt"
-              type="text"
               value={selectedNode.data.prompt || ''}
-              onChange={handlePromptChange}
-              placeholder="Enter AI message prompt"
-              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+              onChange={(e) => handleDataChange('prompt', e.target.value)}
+              placeholder="Enter AI message prompt (e.g., Hello, how can I help you?)"
+              rows={4}
+              className="w-full"
             />
           </div>
         )}
 
-        {/* Add more specific property fields for other node types here */}
-        {/* Example for a hypothetical 'condition' node:
+        {selectedNode.type === 'listenNode' && (
+          <div>
+            <label htmlFor="listenEvent" className="block text-sm font-medium text-text-color-secondary mb-1.5">
+              Listen For (Event Name)
+            </label>
+            <Input
+              id="listenEvent"
+              type="text"
+              value={selectedNode.data.eventName || ''}
+              onChange={(e) => handleDataChange('eventName', e.target.value)}
+              placeholder="e.g., user_speech_processed"
+              className="w-full"
+            />
+          </div>
+        )}
+        
         {selectedNode.type === 'conditionNode' && (
           <div>
-            <label htmlFor="nodeCondition" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="nodeCondition" className="block text-sm font-medium text-text-color-secondary mb-1.5">
               Condition Logic
             </label>
-            <Input
+            <textarea
               id="nodeCondition"
-              type="text"
               value={selectedNode.data.conditionLogic || ''}
-              onChange={(e) => onUpdateNodeData(selectedNode.id, { conditionLogic: e.target.value })}
-              placeholder="e.g., userInput === 'yes'"
-              className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+              onChange={(e) => handleDataChange('conditionLogic', e.target.value)}
+              placeholder="e.g., variables.orderStatus === 'shipped'"
+              rows={3}
+              className="w-full"
             />
+            <p className="mt-1.5 text-xs text-text-color-muted">
+              Use JavaScript-like expressions. Access variables via `variables.variableName`.
+            </p>
           </div>
         )}
-        */}
-
-        <div className="mt-4 p-2 bg-gray-50 rounded-md border border-gray-200">
-          <h3 className="text-xs font-semibold text-gray-500 mb-1">Node Info</h3>
-          <p className="text-xs text-gray-600">ID: {selectedNode.id}</p>
-          <p className="text-xs text-gray-600">Type: {selectedNode.type}</p>
-          <p className="text-xs text-gray-600">
-            Position: x: {selectedNode.position.x.toFixed(0)}, y: {selectedNode.position.y.toFixed(0)}
-          </p>
+        
+        <div className="mt-8 pt-6 border-t border-border-color">
+          <h4 className="text-sm font-semibold text-text-color-secondary mb-2">Node Info</h4>
+          <div className="space-y-1 text-xs text-text-color-muted bg-neutral-color-light p-3 rounded-md border border-border-color">
+            <p><span className="font-medium text-text-color-primary">ID:</span> {selectedNode.id}</p>
+            <p><span className="font-medium text-text-color-primary">Type:</span> <span className="px-2 py-0.5 bg-primary-color text-white rounded-full text-xs font-medium">{selectedNode.type}</span></p>
+            <p><span className="font-medium text-text-color-primary">Position:</span> x: {selectedNode.position.x.toFixed(0)}, y: {selectedNode.position.y.toFixed(0)}</p>
+          </div>
         </div>
 
       </div>
