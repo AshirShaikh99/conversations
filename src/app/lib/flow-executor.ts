@@ -1,6 +1,6 @@
 import { Node, Edge } from 'reactflow';
 import { CustomNodeData } from '@/app/components/nodes/CustomNode';
-import { CallStage, CallStageConfig, ParameterLocation } from './ultravox-config';
+import { CallStageConfig, CallStage, SelectedTool, ParameterLocation } from './ultravox-config';
 
 export interface FlowExecutionContext {
   currentNodeId: string;
@@ -426,6 +426,85 @@ export class FlowExecutor {
     }
 
     return reachable;
+  }
+
+  /**
+   * Generate the moveToStage tool for stage transitions
+   */
+  private generateMoveToStageTool(): SelectedTool {
+    return {
+      temporaryTool: {
+        modelToolName: 'moveToStage',
+        description: 'Move to the next stage in the conversation flow',
+        dynamicParameters: [
+          {
+            name: 'targetStage',
+            location: ParameterLocation.BODY,
+            schema: {
+              description: 'The ID of the target stage to move to',
+              type: 'string',
+              enum: this.getAllStageIds()
+            },
+            required: true
+          },
+          {
+            name: 'reason',
+            location: ParameterLocation.BODY,
+            schema: {
+              description: 'The reason for moving to this stage',
+              type: 'string'
+            },
+            required: true
+          }
+        ],
+        client: {} // This marks it as a client-side tool
+      }
+    };
+  }
+
+  /**
+   * Get all stage IDs for the enum constraint
+   */
+  private getAllStageIds(): string[] {
+    return this.nodes.map(node => node.id);
+  }
+
+  /**
+   * Generate a call stage from a node
+   */
+  private generateStageFromNode(node: Node<CustomNodeData>, nextNodes: Node<CustomNodeData>[]): CallStage {
+    // Generate prompt based on node type
+    let systemPrompt: string;
+    switch (node.type) {
+      case 'startNode':
+        systemPrompt = this.generateStartPrompt(node);
+        break;
+      case 'messageNode':
+        systemPrompt = this.generateMessagePrompt(node);
+        break;
+      case 'listenNode':
+        systemPrompt = this.generateListenPrompt(node);
+        break;
+      case 'conditionNode':
+        systemPrompt = this.generateConditionPrompt(node);
+        break;
+      case 'endNode':
+        systemPrompt = this.generateEndPrompt(node);
+        break;
+      default:
+        systemPrompt = node.data.prompt?.trim() || 'Continue the conversation naturally.';
+    }
+
+    return {
+      id: node.id, // Use the node ID as stage ID for proper highlighting
+      name: node.data.label || node.type || 'Untitled',
+      systemPrompt,
+      voice: 'Mark',
+      temperature: 0.4,
+      selectedTools: [this.generateMoveToStageTool()], // Include moveToStage tool for stage transitions
+      languageHint: 'en',
+      nextStages: nextNodes.map(n => n.id)
+    };
   }
 }
 

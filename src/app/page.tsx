@@ -58,11 +58,42 @@ export default function HomePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCallStages, setShowCallStages] = useState(false);
   const [currentStage, setCurrentStage] = useState<string>('');
+  const [activeNodeId, setActiveNodeId] = useState<string>('');
   const [flowValidation, setFlowValidation] = useState<{isValid: boolean; errors: string[]}>({
     isValid: true,
     errors: []
   });
   const [useDynamicFlow, setUseDynamicFlow] = useState(true);
+
+  // Update node styles based on active stage
+  const getNodeStyle = useCallback((nodeId: string) => {
+    const isActive = nodeId === activeNodeId;
+    if (isActive) {
+      console.log('🎨 Applying active style to node:', { nodeId, activeNodeId });
+      return {
+        border: '3px solid #10b981', // Green border for active node
+        boxShadow: '0 0 15px rgba(16, 185, 129, 0.5)',
+        backgroundColor: '#ecfdf5', // Light green background
+      };
+    }
+    return {};
+  }, [activeNodeId]);
+
+  // Apply styles to nodes
+  const nodesWithStyles = nodes.map(node => {
+    const style = getNodeStyle(node.id);
+    const hasStyle = Object.keys(style).length > 0;
+    if (hasStyle) {
+      console.log('🖌️ Applying style to node:', { nodeId: node.id, style });
+    }
+    return {
+      ...node,
+      style: {
+        ...node.style,
+        ...style
+      }
+    };
+  });
 
   const onUpdateNodeData = useCallback(
     (nodeId: string, newData: Partial<CustomNodeData>) => {
@@ -192,9 +223,20 @@ export default function HomePage() {
   }, [rfInstance]);
 
   const handleStageChange = useCallback((stageId: string, stageName: string) => {
+    console.log('🎯 handleStageChange called:', { stageId, stageName });
+    console.log('📋 Current nodes:', nodes.map(n => ({ id: n.id, label: n.data.label })));
+    
     setCurrentStage(stageId);
-    console.log(`Stage changed to: ${stageName} (${stageId})`);
-  }, []);
+    setActiveNodeId(stageId); // Highlight the node corresponding to the current stage
+    
+    console.log('✅ Stage state updated:', { 
+      newCurrentStage: stageId, 
+      newActiveNodeId: stageId,
+      matchingNode: nodes.find(n => n.id === stageId)?.data.label 
+    });
+    
+    console.log(`🎨 Node highlighted: ${stageName} (${stageId})`);
+  }, [nodes]);
 
   const handleCallEnd = useCallback(() => {
     setShowCallStages(false);
@@ -290,7 +332,7 @@ export default function HomePage() {
           <Sidebar />
           <main className="flex-grow h-full relative" onDrop={onDrop} onDragOver={onDragOver}>
             <ReactFlow
-              nodes={nodes}
+              nodes={nodesWithStyles}
               edges={edges}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
@@ -352,6 +394,37 @@ export default function HomePage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Status Bar */}
+      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <h1 className="text-xl font-semibold text-gray-900">Voice Flow Builder</h1>
+          {activeNodeId && (
+            <div className="flex items-center space-x-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>Agent Active: {nodes.find(n => n.id === activeNodeId)?.data.label || activeNodeId}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center space-x-2">
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={useDynamicFlow}
+              onChange={(e) => setUseDynamicFlow(e.target.checked)}
+              className="rounded"
+            />
+            <span className="text-sm text-gray-700">Dynamic Flow</span>
+          </label>
+          <Button
+            onClick={() => setShowCallStages(!showCallStages)}
+            variant="secondary"
+            className="text-sm"
+          >
+            {showCallStages ? 'Hide' : 'Show'} Call Stages
+          </Button>
+        </div>
       </div>
     </div>
   );

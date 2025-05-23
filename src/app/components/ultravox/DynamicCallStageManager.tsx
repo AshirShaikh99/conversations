@@ -69,13 +69,27 @@ export default function DynamicCallStageManager({
       // Generate dynamic call stage configuration
       const callStageConfig = executor.generateCallStageConfig();
       
+      console.log('🔧 Generated call stage config:', {
+        initialStageId: callStageConfig.initialStageId,
+        stageCount: callStageConfig.stages.length,
+        stages: callStageConfig.stages.map(s => ({ id: s.id, name: s.name }))
+      });
+      
       // Get Ultravox configuration
       const { apiKey } = getUltravoxConfig();
       
       // Create call manager with dynamic config
       const callManager = new UltravoxCallStageManager(callStageConfig, apiKey);
       
+      // Set up stage change callback with detailed logging
+      console.log('🔗 Setting up stage change callback');
+      callManager.setOnStageChange((stageId: string, stageName: string) => {
+        console.log('📍 Stage change received in DynamicCallStageManager:', { stageId, stageName });
+        onStageChange(stageId, stageName);
+      });
+      
       // Initialize the call
+      console.log('🚀 Initializing Ultravox call...');
       const joinUrl = await callManager.initializeCall();
       
       setCallState({
@@ -86,10 +100,12 @@ export default function DynamicCallStageManager({
         callManager
       });
       
-      onStageChange(callStageConfig.initialStageId, 'Initialized');
+      // Notify initial stage
+      console.log('🎯 Notifying initial stage to parent component');
+      onStageChange(callStageConfig.initialStageId, 'Call Initialized');
       
     } catch (error) {
-      console.error('Failed to initialize call:', error);
+      console.error('❌ Failed to initialize call:', error);
       onError(`Failed to initialize call: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsInitializing(false);
@@ -106,8 +122,11 @@ export default function DynamicCallStageManager({
       await callState.callManager.joinCall(callState.joinUrl);
       setCallState(prev => ({ ...prev, isActive: true }));
       onStageChange(callState.currentStage, 'Call Started');
+      
+      console.log('✅ Call started successfully - Stage transitions will update UI automatically');
+      
     } catch (error) {
-      console.error('Failed to start call:', error);
+      console.error('❌ Failed to start call:', error);
       onError(`Failed to start call: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }, [callState.joinUrl, callState.callManager, callState.currentStage, onStageChange, onError]);
@@ -129,7 +148,7 @@ export default function DynamicCallStageManager({
       });
       onCallEnd();
     } catch (error) {
-      console.error('Failed to end call:', error);
+      console.error('❌ Failed to end call:', error);
       onError(`Failed to end call: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }, [callState.callManager, onCallEnd, onError]);

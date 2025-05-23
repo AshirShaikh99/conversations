@@ -143,12 +143,51 @@ async function getUltravoxSession(): Promise<UltravoxSessionConstructor> {
 export class UltravoxCallStageManager {
   private session: UltravoxSession | null = null;
   private currentStage: string = '';
+  private callId: string = '';
   private config: CallStageConfig;
   private apiKey: string;
+  private onStageChangeCallback?: (stageId: string, stageName: string) => void;
 
   constructor(config: CallStageConfig, apiKey: string) {
     this.config = config;
     this.apiKey = apiKey;
+  }
+
+  setOnStageChange(callback: (stageId: string, stageName: string) => void): void {
+    this.onStageChangeCallback = callback;
+  }
+
+  getCallId(): string {
+    return this.callId;
+  }
+
+  getCurrentStageId(): string {
+    return this.currentStage;
+  }
+
+  /**
+   * Get stage configuration by ID
+   */
+  getStageConfig(stageId: string): CallStage | undefined {
+    return this.config.stages.find(s => s.id === stageId);
+  }
+
+  /**
+   * Get all stages in the configuration
+   */
+  getAllStages(): CallStage[] {
+    return this.config.stages;
+  }
+
+  /**
+   * Validate that a stage transition is allowed
+   */
+  private isValidTransition(fromStage: string, toStage: string): boolean {
+    const currentStageConfig = this.config.stages.find(s => s.id === fromStage);
+    if (!currentStageConfig || !currentStageConfig.nextStages) {
+      return true; // Allow transition if no restrictions defined
+    }
+    return currentStageConfig.nextStages.includes(toStage);
   }
 
   async initializeCall(): Promise<string> {
@@ -159,14 +198,20 @@ export class UltravoxCallStageManager {
         throw new Error('Initial stage not found');
       }
 
+      console.log('🎯 Initializing call with stage:', {
+        stageId: this.config.initialStageId,
+        stageName: initialStage.name,
+        totalStages: this.config.stages.length
+      });
+
       // Create call configuration using ONLY the prompt from the conversational flow
       const callConfig = {
         systemPrompt: initialStage.systemPrompt, // This comes directly from your flow node prompt
         model: this.config.globalConfig.model,
         voice: initialStage.voice || 'Mark',
         temperature: initialStage.temperature || 0.4,
-        // Don't include selectedTools in initial call creation for client-side tools
-        // selectedTools: initialStage.selectedTools || [],
+        // Include selectedTools for client-side tool implementations
+        selectedTools: initialStage.selectedTools || [],
         languageHint: initialStage.languageHint || 'en',
         maxDuration: this.config.globalConfig.maxDuration,
         recordingEnabled: this.config.globalConfig.recordingEnabled,
@@ -176,7 +221,7 @@ export class UltravoxCallStageManager {
         initialOutputMedium: 'MESSAGE_MEDIUM_VOICE'
       };
 
-      console.log('Initializing call with config:', callConfig);
+      console.log('📞 Creating Ultravox call with config:', callConfig);
 
       // Use our proxy API route instead of calling Ultravox directly
       const response = await fetch('/api/ultravox/create-call', {
@@ -187,7 +232,7 @@ export class UltravoxCallStageManager {
         body: JSON.stringify(callConfig)
       });
 
-      console.log('Response status:', response.status);
+      console.log('📡 Response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -202,11 +247,27 @@ export class UltravoxCallStageManager {
 
       const call = await response.json();
       this.currentStage = this.config.initialStageId;
+      this.callId = call.callId; // Store the call ID for stage API calls
       
-      console.log('Call created successfully:', call);
+      // Notify initial stage change with detailed logging
+      console.log('🎉 Call created successfully, notifying initial stage change:', {
+        stageId: this.config.initialStageId,
+        stageName: initialStage.name,
+        callId: this.callId,
+        hasCallback: !!this.onStageChangeCallback
+      });
+      
+      if (this.onStageChangeCallback) {
+        console.log('🚀 Triggering stage change callback for initial stage');
+        this.onStageChangeCallback(this.config.initialStageId, initialStage.name);
+      } else {
+        console.warn('⚠️ No stage change callback registered!');
+      }
+      
+      console.log('✅ Call created successfully:', call);
       return call.joinUrl;
     } catch (error) {
-      console.error('Failed to initialize Ultravox call:', error);
+      console.error('❌ Failed to initialize Ultravox call:', error);
       if (error instanceof TypeError && error.message.includes('fetch')) {
         throw new Error('Network error: Unable to connect to Ultravox API. Please check your internet connection.');
       }
@@ -249,26 +310,35 @@ export class UltravoxCallStageManager {
   private async handleStageTransition(parameters: Record<string, unknown>): Promise<string> {
     const { targetStage, reason } = parameters as unknown as StageTransitionParams;
     
-    console.log(`Transitioning from ${this.currentStage} to ${targetStage}: ${reason}`);
+    console.log(`🔄 Stage transition requested: ${this.currentStage} → ${targetStage} (${reason})`);
     
     // Find the target stage configuration
     const nextStage = this.config.stages.find(s => s.id === targetStage);
     if (!nextStage) {
+      console.error(`❌ Target stage "${targetStage}" not found in configuration`);
       return `Error: Stage "${targetStage}" not found`;
     }
 
     // Validate transition is allowed
-    const currentStageConfig = this.config.stages.find(s => s.id === this.currentStage);
-    if (currentStageConfig && currentStageConfig.nextStages && 
-        !currentStageConfig.nextStages.includes(targetStage)) {
+    if (!this.isValidTransition(this.currentStage, targetStage)) {
+      console.error(`❌ Invalid transition: ${this.currentStage} → ${targetStage}`);
       return `Error: Transition from "${this.currentStage}" to "${targetStage}" is not allowed`;
     }
 
     // Update current stage
+    const previousStage = this.currentStage;
     this.currentStage = targetStage;
     
-    // Create stage transition API call to update the system prompt
+    // Notify stage change immediately for UI highlighting
+    console.log(`✅ Stage changed locally: ${previousStage} → ${targetStage}`);
+    if (this.onStageChangeCallback) {
+      console.log(`🎨 Triggering UI update for stage: ${targetStage} (${nextStage.name})`);
+      this.onStageChangeCallback(targetStage, nextStage.name);
+    }
+    
+    // Create stage transition API call to update Ultravox system prompt
     try {
+      console.log(`📡 Sending stage transition to Ultravox Call Stages API...`);
       const response = await fetch('/api/ultravox/stage-transition', {
         method: 'POST',
         headers: {
@@ -278,23 +348,23 @@ export class UltravoxCallStageManager {
           systemPrompt: nextStage.systemPrompt,
           voice: nextStage.voice || 'Mark',
           temperature: nextStage.temperature || 0.4,
-          toolResultText: `(Stage Transition) Successfully moved to ${nextStage.name} stage. ${reason}`,
+          toolResultText: `Successfully transitioned from ${previousStage} to ${nextStage.name}. ${reason}`,
           stageName: nextStage.name,
           stageId: targetStage
         })
       });
 
       if (!response.ok) {
-        console.error('Failed to transition stage via API:', response.statusText);
-        return `Stage transition initiated locally. Now in ${nextStage.name} stage: ${reason}`;
+        console.error(`❌ Ultravox API stage transition failed: ${response.statusText}`);
+        return `Stage updated locally but Ultravox sync failed. Now in ${nextStage.name} stage: ${reason}`;
       }
 
-      console.log(`Successfully transitioned to ${nextStage.name} stage via API`);
-      return `Successfully transitioned to ${nextStage.name} stage. ${reason}`;
+      console.log(`✅ Ultravox Call Stages API transition successful: ${nextStage.name}`);
+    return `Successfully transitioned to ${nextStage.name} stage. ${reason}`;
     } catch (error) {
-      console.error('Error during stage transition:', error);
-      // Fallback to local transition
-      return `Stage transition initiated. Now in ${nextStage.name} stage: ${reason}`;
+      console.error('❌ Error during Ultravox stage transition:', error);
+      // Still return success since local transition worked
+      return `Stage updated locally (Ultravox sync failed). Now in ${nextStage.name} stage: ${reason}`;
     }
   }
 
@@ -377,14 +447,6 @@ export class UltravoxCallStageManager {
 
   getCurrentStage(): string {
     return this.currentStage;
-  }
-
-  getStageConfig(stageId: string): CallStage | undefined {
-    return this.config.stages.find(s => s.id === stageId);
-  }
-
-  getAllStages(): CallStage[] {
-    return this.config.stages;
   }
 }
 
