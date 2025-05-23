@@ -5,7 +5,18 @@ import { Handle, Position, NodeProps } from 'reactflow';
 
 export interface CustomNodeData {
   label: string;
-  [key: string]: any; // For additional properties like prompt for MessageNode
+  prompt?: string;
+  voice?: string;
+  temperature?: number;
+  languageHint?: string;
+  additionalInstructions?: string;
+  eventName?: string;
+  timeout?: number;
+  condition?: string;
+  conditionLogic?: string;
+  conditionValue?: string;
+  summaryInstructions?: string;
+  [key: string]: string | number | boolean | undefined; // For additional properties
 }
 
 // We can extend NodeProps with our custom data type

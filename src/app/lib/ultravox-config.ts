@@ -68,321 +68,18 @@ export interface CallStageConfig {
   };
 }
 
-// Default configuration for the voice flow builder
+// Default configuration for the voice flow builder - REMOVED PREDEFINED PROMPTS
+// The system now exclusively uses prompts generated from the conversational flow
 export const defaultCallStageConfig: CallStageConfig = {
-  initialStageId: 'greeting',
+  initialStageId: 'flow-start',
   globalConfig: {
     model: 'fixie-ai/ultravox-70B',
     maxDuration: '1800s', // 30 minutes
     recordingEnabled: true,
   },
   stages: [
-    {
-      id: 'greeting',
-      name: 'Initial Greeting',
-      systemPrompt: `
-        You are a helpful AI assistant for a voice conversation system.
-        
-        ## Your Role
-        - Greet the user warmly and professionally
-        - Identify the purpose of their call
-        - Guide them to the appropriate next stage of the conversation
-        
-        ## Available Tools
-        - Use "moveToStage" to transition to different conversation stages
-        
-        ## Guidelines
-        - Keep responses brief and natural
-        - Listen actively to understand user needs
-        - Always confirm understanding before moving to next stage
-        
-        ## Next Steps
-        - For information requests: move to "information" stage
-        - For support issues: move to "support" stage
-        - For complex problems: move to "escalation" stage
-      `,
-      voice: 'Mark',
-      temperature: 0.4,
-      selectedTools: [
-        {
-          temporaryTool: {
-            modelToolName: 'moveToStage',
-            description: 'Move the conversation to a specific stage',
-            dynamicParameters: [
-              {
-                name: 'targetStage',
-                location: ParameterLocation.BODY,
-                schema: {
-                  description: 'The target stage to move to',
-                  type: 'string',
-                  enum: ['information', 'support', 'escalation']
-                },
-                required: true
-              },
-              {
-                name: 'reason',
-                location: ParameterLocation.BODY,
-                schema: {
-                  description: 'Reason for the stage transition',
-                  type: 'string'
-                },
-                required: true
-              }
-            ],
-            client: {}
-          }
-        }
-      ],
-      nextStages: ['information', 'support', 'escalation']
-    },
-    {
-      id: 'information',
-      name: 'Information Provision',
-      systemPrompt: `
-        You are now in the information provision stage.
-        
-        ## Your Role
-        - Provide accurate and helpful information
-        - Answer questions clearly and concisely
-        - Offer additional related information when appropriate
-        
-        ## Guidelines
-        - Be thorough but concise
-        - Ask clarifying questions if needed
-        - Suggest moving to support if technical issues arise
-        
-        ## Available Actions
-        - Use "moveToStage" to transition if needed
-        - Use "completeCall" when information needs are satisfied
-      `,
-      voice: 'Mark',
-      temperature: 0.3,
-      selectedTools: [
-        {
-          temporaryTool: {
-            modelToolName: 'moveToStage',
-            description: 'Move to another conversation stage',
-            dynamicParameters: [
-              {
-                name: 'targetStage',
-                location: ParameterLocation.BODY,
-                schema: {
-                  description: 'Target stage',
-                  type: 'string',
-                  enum: ['support', 'escalation', 'completion']
-                },
-                required: true
-              },
-              {
-                name: 'reason',
-                location: ParameterLocation.BODY,
-                schema: {
-                  description: 'Reason for transition',
-                  type: 'string'
-                },
-                required: true
-              }
-            ],
-            client: {}
-          }
-        },
-        {
-          temporaryTool: {
-            modelToolName: 'completeCall',
-            description: 'Complete the call successfully',
-            dynamicParameters: [
-              {
-                name: 'summary',
-                location: ParameterLocation.BODY,
-                schema: {
-                  description: 'Summary of what was accomplished',
-                  type: 'string'
-                },
-                required: true
-              }
-            ],
-            client: {}
-          }
-        }
-      ],
-      nextStages: ['support', 'escalation', 'completion']
-    },
-    {
-      id: 'support',
-      name: 'Technical Support',
-      systemPrompt: `
-        You are now providing technical support.
-        
-        ## Your Role
-        - Diagnose and resolve technical issues
-        - Guide users through troubleshooting steps
-        - Escalate complex issues when necessary
-        
-        ## Guidelines
-        - Be patient and step-by-step in your approach
-        - Confirm each step before moving to the next
-        - Document issues for future reference
-        
-        ## Available Actions
-        - Use "escalateIssue" for complex problems
-        - Use "resolveIssue" when problem is solved
-      `,
-      voice: 'Jessica',
-      temperature: 0.2,
-      selectedTools: [
-        {
-          temporaryTool: {
-            modelToolName: 'escalateIssue',
-            description: 'Escalate to senior support or specialist',
-            dynamicParameters: [
-              {
-                name: 'issueType',
-                location: ParameterLocation.BODY,
-                schema: {
-                  description: 'Type of issue requiring escalation',
-                  type: 'string',
-                  enum: ['technical', 'billing', 'urgent', 'other']
-                },
-                required: true
-              },
-              {
-                name: 'issueDetails',
-                location: ParameterLocation.BODY,
-                schema: {
-                  description: 'Detailed description of the issue',
-                  type: 'string'
-                },
-                required: true
-              }
-            ],
-            client: {}
-          }
-        },
-        {
-          temporaryTool: {
-            modelToolName: 'resolveIssue',
-            description: 'Mark issue as resolved',
-            dynamicParameters: [
-              {
-                name: 'resolution',
-                location: ParameterLocation.BODY,
-                schema: {
-                  description: 'How the issue was resolved',
-                  type: 'string'
-                },
-                required: true
-              }
-            ],
-            client: {}
-          }
-        }
-      ],
-      nextStages: ['escalation', 'completion']
-    },
-    {
-      id: 'escalation',
-      name: 'Manager Escalation',
-      systemPrompt: `
-        You are now a senior manager handling an escalated issue.
-        
-        ## Your Role
-        - Handle complex or sensitive issues
-        - Provide authoritative solutions
-        - Ensure customer satisfaction
-        
-        ## Guidelines
-        - Acknowledge the escalation immediately
-        - Show empathy and understanding
-        - Provide definitive solutions when possible
-        - Follow up as needed
-        
-        ## Authority
-        - You can authorize refunds up to $500
-        - You can override standard policies when appropriate
-        - You can schedule urgent callbacks
-      `,
-      voice: 'Tanya',
-      temperature: 0.1,
-      selectedTools: [
-        {
-          temporaryTool: {
-            modelToolName: 'authorizeRefund',
-            description: 'Authorize a refund for the customer',
-            dynamicParameters: [
-              {
-                name: 'amount',
-                location: ParameterLocation.BODY,
-                schema: {
-                  description: 'Refund amount in USD',
-                  type: 'number'
-                },
-                required: true
-              },
-              {
-                name: 'reason',
-                location: ParameterLocation.BODY,
-                schema: {
-                  description: 'Reason for the refund',
-                  type: 'string'
-                },
-                required: true
-              }
-            ],
-            client: {}
-          }
-        },
-        {
-          temporaryTool: {
-            modelToolName: 'scheduleCallback',
-            description: 'Schedule a priority callback',
-            dynamicParameters: [
-              {
-                name: 'timeframe',
-                location: ParameterLocation.BODY,
-                schema: {
-                  description: 'When to schedule the callback',
-                  type: 'string',
-                  enum: ['1_hour', '4_hours', '24_hours', 'next_business_day']
-                },
-                required: true
-              }
-            ],
-            client: {}
-          }
-        }
-      ],
-      nextStages: ['completion']
-    },
-    {
-      id: 'completion',
-      name: 'Call Completion',
-      systemPrompt: `
-        You are concluding the conversation.
-        
-        ## Your Role
-        - Summarize what was accomplished
-        - Ensure customer satisfaction
-        - Provide any follow-up information
-        - End the call professionally
-        
-        ## Guidelines
-        - Thank the customer for their time
-        - Confirm all issues are resolved
-        - Provide reference numbers if applicable
-        - Offer additional assistance if needed
-        
-        ## Completion
-        - Use "endCall" when ready to conclude
-      `,
-      voice: 'Mark',
-      temperature: 0.3,
-      selectedTools: [
-        {
-          toolName: 'hangUp'
-        }
-      ],
-      nextStages: []
-    }
+    // This will be replaced by flow-generated stages
+    // No predefined stages to avoid interference with flow prompts
   ]
 };
 
@@ -462,9 +159,9 @@ export class UltravoxCallStageManager {
         throw new Error('Initial stage not found');
       }
 
-      // Create call configuration WITHOUT client-side tools for initial creation
+      // Create call configuration using ONLY the prompt from the conversational flow
       const callConfig = {
-        systemPrompt: initialStage.systemPrompt,
+        systemPrompt: initialStage.systemPrompt, // This comes directly from your flow node prompt
         model: this.config.globalConfig.model,
         voice: initialStage.voice || 'Mark',
         temperature: initialStage.temperature || 0.4,
@@ -475,12 +172,7 @@ export class UltravoxCallStageManager {
         recordingEnabled: this.config.globalConfig.recordingEnabled,
         medium: this.config.globalConfig.medium,
         firstSpeaker: 'FIRST_SPEAKER_AGENT',
-        firstSpeakerSettings: {
-          agent: {
-            text: `Hello! I'm your assistant. How can I help you today?`,
-            delay: '1s'
-          }
-        },
+        // Removed hardcoded firstSpeakerSettings to let the agent use only the flow prompt
         initialOutputMedium: 'MESSAGE_MEDIUM_VOICE'
       };
 
@@ -526,9 +218,17 @@ export class UltravoxCallStageManager {
     const UltravoxSessionClass = await getUltravoxSession();
     this.session = new UltravoxSessionClass();
     
-    // Register stage transition tool implementation
+    // Register all possible tool implementations that may be used in the flow
     if (this.session) {
+      // Core navigation tool
       this.session.registerToolImplementation('moveToStage', this.handleStageTransition.bind(this));
+      
+      // Flow-specific tools
+      this.session.registerToolImplementation('captureInput', this.handleCaptureInput.bind(this));
+      this.session.registerToolImplementation('evaluateCondition', this.handleEvaluateCondition.bind(this));
+      this.session.registerToolImplementation('endCall', this.handleEndCall.bind(this));
+      
+      // Legacy tools (kept for backwards compatibility)
       this.session.registerToolImplementation('completeCall', this.handleCallCompletion.bind(this));
       this.session.registerToolImplementation('escalateIssue', this.handleIssueEscalation.bind(this));
       this.session.registerToolImplementation('resolveIssue', this.handleIssueResolution.bind(this));
@@ -564,11 +264,38 @@ export class UltravoxCallStageManager {
       return `Error: Transition from "${this.currentStage}" to "${targetStage}" is not allowed`;
     }
 
+    // Update current stage
     this.currentStage = targetStage;
     
-    // This would typically trigger a new stage via API
-    // For now, return success message
-    return `Successfully transitioned to ${nextStage.name} stage. ${reason}`;
+    // Create stage transition API call to update the system prompt
+    try {
+      const response = await fetch('/api/ultravox/stage-transition', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          systemPrompt: nextStage.systemPrompt,
+          voice: nextStage.voice || 'Mark',
+          temperature: nextStage.temperature || 0.4,
+          toolResultText: `(Stage Transition) Successfully moved to ${nextStage.name} stage. ${reason}`,
+          stageName: nextStage.name,
+          stageId: targetStage
+        })
+      });
+
+      if (!response.ok) {
+        console.error('Failed to transition stage via API:', response.statusText);
+        return `Stage transition initiated locally. Now in ${nextStage.name} stage: ${reason}`;
+      }
+
+      console.log(`Successfully transitioned to ${nextStage.name} stage via API`);
+      return `Successfully transitioned to ${nextStage.name} stage. ${reason}`;
+    } catch (error) {
+      console.error('Error during stage transition:', error);
+      // Fallback to local transition
+      return `Stage transition initiated. Now in ${nextStage.name} stage: ${reason}`;
+    }
   }
 
   private async handleCallCompletion(parameters: Record<string, unknown>): Promise<string> {
@@ -599,6 +326,53 @@ export class UltravoxCallStageManager {
     const { timeframe } = parameters as unknown as CallbackSchedulingParams;
     console.log(`Callback scheduled for: ${timeframe}`);
     return `I've scheduled a priority callback for you within ${timeframe.replace('_', ' ')}. You'll receive a call from our specialist team.`;
+  }
+
+  private async handleCaptureInput(parameters: Record<string, unknown>): Promise<string> {
+    const { inputValue, inputType } = parameters as { inputValue: string; inputType?: string };
+    console.log(`Captured input - Type: ${inputType || 'general'}, Value: ${inputValue}`);
+    
+    // Store the captured input in context (this could be enhanced to persist data)
+    // For now, just acknowledge the capture
+    return `I've captured your ${inputType || 'input'}: "${inputValue}". Thank you for providing that information.`;
+  }
+
+  private async handleEvaluateCondition(parameters: Record<string, unknown>): Promise<string> {
+    const { conditionResult, nextStage } = parameters as { conditionResult: boolean; nextStage: string };
+    console.log(`Condition evaluated - Result: ${conditionResult}, Next stage: ${nextStage}`);
+    
+    // Find the target stage configuration
+    const targetStage = this.config.stages.find(s => s.id === nextStage);
+    if (!targetStage) {
+      return `Error: Target stage "${nextStage}" not found`;
+    }
+
+    // Trigger stage transition based on condition result
+    return await this.handleStageTransition({ 
+      targetStage: nextStage, 
+      reason: `Condition evaluated to ${conditionResult}` 
+    });
+  }
+
+  private async handleEndCall(parameters: Record<string, unknown>): Promise<string> {
+    const { summary } = parameters as { summary?: string };
+    console.log(`Call ending - Summary: ${summary || 'No summary provided'}`);
+    
+    // End the call gracefully
+    if (this.session) {
+      setTimeout(async () => {
+        try {
+          await this.session?.leaveCall();
+          this.session = null;
+        } catch (error) {
+          console.error('Error ending call:', error);
+        }
+      }, 2000); // Give time for the response to be delivered
+    }
+    
+    return summary 
+      ? `Thank you for the conversation. ${summary} Have a great day!`
+      : `Thank you for the conversation. Have a great day!`;
   }
 
   getCurrentStage(): string {

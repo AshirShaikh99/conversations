@@ -25,9 +25,9 @@ import MessageNode from '@/app/components/nodes/MessageNode';
 import ListenNode from '@/app/components/nodes/ListenNode';
 import ConditionNode from '@/app/components/nodes/ConditionNode';
 import EndNode from '@/app/components/nodes/EndNode';
-import CallStageManager from '@/app/components/ultravox/CallStageManager';
+import DynamicCallStageManager from '@/app/components/ultravox/DynamicCallStageManager';
 import { CustomNodeData } from '@/app/components/nodes/CustomNode';
-import { defaultCallStageConfig, CallStageConfig } from '@/app/lib/ultravox-config';
+import { getAllFlowTemplates, getFlowTemplate } from '@/app/lib/flow-templates';
 
 const initialNodes: Node<CustomNodeData>[] = [
   {
@@ -58,7 +58,11 @@ export default function HomePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCallStages, setShowCallStages] = useState(false);
   const [currentStage, setCurrentStage] = useState<string>('');
-  const [callStageConfig] = useState<CallStageConfig>(defaultCallStageConfig);
+  const [flowValidation, setFlowValidation] = useState<{isValid: boolean; errors: string[]}>({
+    isValid: true,
+    errors: []
+  });
+  const [useDynamicFlow, setUseDynamicFlow] = useState(true);
 
   const onUpdateNodeData = useCallback(
     (nodeId: string, newData: Partial<CustomNodeData>) => {
@@ -156,6 +160,21 @@ export default function HomePage() {
     }
   }, [setNodes, setEdges]);
 
+  const onLoadTemplate = useCallback((templateId: string) => {
+    const template = getFlowTemplate(templateId);
+    if (template) {
+      setNodes(template.nodes);
+      setEdges(template.edges);
+      const maxId = template.nodes.reduce((max: number, node: Node) => {
+        const numPart = parseInt(node.id.split('_')[1]);
+        return numPart > max ? numPart : max;
+      }, 0);
+      nodeUniqueId = maxId + 1;
+      setSelectedNode(null);
+      alert(`Template "${template.name}" loaded successfully!`);
+    }
+  }, [setNodes, setEdges]);
+
   const onRunFlow = useCallback(async () => {
     if (!rfInstance) {
       alert('ReactFlow instance not available.');
@@ -188,6 +207,10 @@ export default function HomePage() {
     alert(`Call error: ${error}`);
   }, []);
 
+  const handleFlowValidation = useCallback((isValid: boolean, errors: string[]) => {
+    setFlowValidation({ isValid, errors });
+  }, []);
+
   return (
     <div className="flex flex-col h-screen bg-background-start-rgb">
       <header className="bg-gray-900 text-white p-4 shadow-lg flex justify-between items-center z-20">
@@ -195,12 +218,46 @@ export default function HomePage() {
         <div className="space-x-4 flex items-center">
           <Button onClick={onSave} className="button-primary" disabled={isSubmitting}>Save Flow</Button>
           <Button onClick={onLoad} className="button-secondary" disabled={isSubmitting}>Load Flow</Button>
+          
+          {/* Template Dropdown */}
+          <div className="relative">
+            <select
+              onChange={(e) => e.target.value && onLoadTemplate(e.target.value)}
+              className="bg-gray-700 text-white px-3 py-2 rounded-md text-sm border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              defaultValue=""
+            >
+              <option value="" disabled>Load Template</option>
+              {getAllFlowTemplates().map(template => (
+                <option key={template.id} value={template.id}>
+                  {template.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {/* Flow Mode Toggle */}
+          <div className="flex items-center space-x-2">
+            <label className="text-sm">
+              <input
+                type="checkbox"
+                checked={useDynamicFlow}
+                onChange={(e) => setUseDynamicFlow(e.target.checked)}
+                className="mr-1"
+              />
+              Dynamic Flow
+            </label>
+          </div>
+          
           <Button 
             onClick={onRunFlow} 
-            className="bg-green-500 hover:bg-green-600 text-white"
-            disabled={isSubmitting}
+            className={`text-white ${
+              flowValidation.isValid 
+                ? 'bg-green-500 hover:bg-green-600' 
+                : 'bg-red-500 hover:bg-red-600'
+            }`}
+            disabled={isSubmitting || (!useDynamicFlow ? false : !flowValidation.isValid)}
           >
-            {isSubmitting ? 'Processing...' : 'Run with Ultravox'}
+            {isSubmitting ? 'Processing...' : 'Start Call'}
           </Button>
           {currentStage && (
             <span className="text-sm bg-blue-600 text-white px-3 py-1 rounded-full">
@@ -209,6 +266,25 @@ export default function HomePage() {
           )}
         </div>
       </header>
+      
+      {/* Flow Validation Banner */}
+      {useDynamicFlow && !flowValidation.isValid && flowValidation.errors.length > 0 && (
+        <div className="bg-red-50 border-l-4 border-red-400 p-4">
+          <div className="flex">
+            <div className="ml-3">
+              <p className="text-sm text-red-700">
+                <strong>Flow Validation Issues:</strong>
+              </p>
+              <ul className="mt-1 text-sm text-red-600 list-disc list-inside">
+                {flowValidation.errors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-grow overflow-hidden">
         <ReactFlowProvider>
           <Sidebar />
@@ -258,12 +334,21 @@ export default function HomePage() {
               </p>
             </div>
             <div className="p-4">
-              <CallStageManager
-                config={callStageConfig}
-                onStageChange={handleStageChange}
-                onCallEnd={handleCallEnd}
-                onError={handleCallError}
-              />
+              {useDynamicFlow ? (
+                <DynamicCallStageManager
+                  nodes={nodes}
+                  edges={edges}
+                  onStageChange={handleStageChange}
+                  onCallEnd={handleCallEnd}
+                  onError={handleCallError}
+                  onFlowValidation={handleFlowValidation}
+                />
+              ) : (
+                <div className="text-center text-gray-600">
+                  <p>Static call stages mode</p>
+                  <p className="text-sm mt-1">Enable &quot;Dynamic Flow&quot; to use your custom flow</p>
+                </div>
+              )}
             </div>
           </div>
         )}
