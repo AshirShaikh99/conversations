@@ -25,7 +25,9 @@ import MessageNode from '@/app/components/nodes/MessageNode';
 import ListenNode from '@/app/components/nodes/ListenNode';
 import ConditionNode from '@/app/components/nodes/ConditionNode';
 import EndNode from '@/app/components/nodes/EndNode';
+import CallStageManager from '@/app/components/ultravox/CallStageManager';
 import { CustomNodeData } from '@/app/components/nodes/CustomNode';
+import { defaultCallStageConfig, CallStageConfig } from '@/app/lib/ultravox-config';
 
 const initialNodes: Node<CustomNodeData>[] = [
   {
@@ -54,6 +56,9 @@ export default function HomePage() {
   const [selectedNode, setSelectedNode] = useState<Node<CustomNodeData> | null>(null);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance<CustomNodeData, Edge> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCallStages, setShowCallStages] = useState(false);
+  const [currentStage, setCurrentStage] = useState<string>('');
+  const [callStageConfig] = useState<CallStageConfig>(defaultCallStageConfig);
 
   const onUpdateNodeData = useCallback(
     (nodeId: string, newData: Partial<CustomNodeData>) => {
@@ -161,11 +166,27 @@ export default function HomePage() {
     const flow = rfInstance.toObject();
     console.log("Current flow (nodes, edges):", flow.nodes, flow.edges);
     
-    // TODO: Implement flow execution logic here
-    alert('Flow execution logic needs to be implemented');
+    // Show Ultravox Call Stages interface
+    setShowCallStages(true);
     
     setIsSubmitting(false);
   }, [rfInstance]);
+
+  const handleStageChange = useCallback((stageId: string, stageName: string) => {
+    setCurrentStage(stageId);
+    console.log(`Stage changed to: ${stageName} (${stageId})`);
+  }, []);
+
+  const handleCallEnd = useCallback(() => {
+    setShowCallStages(false);
+    setCurrentStage('');
+    console.log('Call ended');
+  }, []);
+
+  const handleCallError = useCallback((error: string) => {
+    console.error('Call error:', error);
+    alert(`Call error: ${error}`);
+  }, []);
 
   return (
     <div className="flex flex-col h-screen bg-background-start-rgb">
@@ -179,8 +200,13 @@ export default function HomePage() {
             className="bg-green-500 hover:bg-green-600 text-white"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Processing...' : 'Run Flow'}
+            {isSubmitting ? 'Processing...' : 'Run with Ultravox'}
           </Button>
+          {currentStage && (
+            <span className="text-sm bg-blue-600 text-white px-3 py-1 rounded-full">
+              Stage: {currentStage}
+            </span>
+          )}
         </div>
       </header>
       <div className="flex flex-grow overflow-hidden">
@@ -213,6 +239,34 @@ export default function HomePage() {
             />
           )}
         </ReactFlowProvider>
+        
+        {/* Ultravox Call Stages Panel */}
+        {showCallStages && (
+          <div className="w-96 bg-gray-50 border-l border-gray-200 overflow-y-auto">
+            <div className="p-4 border-b border-gray-200 bg-white">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-semibold text-gray-800">Ultravox Call Stages</h2>
+                <button
+                  onClick={() => setShowCallStages(false)}
+                  className="text-gray-500 hover:text-gray-700 text-xl"
+                >
+                  ×
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mt-1">
+                Multi-stage voice conversation system
+              </p>
+            </div>
+            <div className="p-4">
+              <CallStageManager
+                config={callStageConfig}
+                onStageChange={handleStageChange}
+                onCallEnd={handleCallEnd}
+                onError={handleCallError}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
