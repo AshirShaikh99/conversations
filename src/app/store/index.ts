@@ -1,1 +1,4 @@
-// Store will be implemented here using Zustand 
+// Future store implementations will go here
+// Using Zustand for state management
+
+export {}; 

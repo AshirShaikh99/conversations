@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, DragEvent, MouseEvent, useEffect } from 'react';
+import React, { useState, useCallback, DragEvent, MouseEvent } from 'react';
 import ReactFlow, {
   ReactFlowProvider,
   addEdge,
@@ -16,8 +16,6 @@ import ReactFlow, {
   SelectionMode,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-// Removed direct UltravoxSessionStatus import as it's now through the store or inferred
-import { UltravoxSessionStatus } from 'ultravox-client'; 
 
 import Sidebar from '@/app/components/panels/Sidebar';
 import PropertiesPanel from '@/app/components/panels/PropertiesPanel';
@@ -28,16 +26,6 @@ import ListenNode from '@/app/components/nodes/ListenNode';
 import ConditionNode from '@/app/components/nodes/ConditionNode';
 import EndNode from '@/app/components/nodes/EndNode';
 import { CustomNodeData } from '@/app/components/nodes/CustomNode';
-import { useUltravoxStore } from '@/app/store/ultravoxStore'; // Import Zustand store
-
-// Transcript interface is now defined in the store, but ensure CustomNodeData is correct.
-// Re-defined here if page.tsx still needs its own local definition for some reason, otherwise remove.
-// interface Transcript {
-//   text: string;
-//   isFinal: boolean;
-//   speaker: 'user' | 'agent';
-//   medium: 'voice' | 'text';
-// }
 
 const initialNodes: Node<CustomNodeData>[] = [
   {
@@ -65,30 +53,7 @@ export default function HomePage() {
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
   const [selectedNode, setSelectedNode] = useState<Node<CustomNodeData> | null>(null);
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance<CustomNodeData, Edge> | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false); // Keep for UI feedback during flow processing before call
-  
-  // State from Zustand store
-  const {
-    initializeSession,
-    sessionStatus,
-    transcripts,
-    startCall,
-    leaveCall,
-    error: ultravoxError,
-    setJoinUrl,
-  } = useUltravoxStore();
-
-  useEffect(() => {
-    initializeSession(); // Initialize Ultravox session via store on component mount
-  }, [initializeSession]);
-
-  // Effect to show Ultravox errors from the store
-  useEffect(() => {
-    if (ultravoxError) {
-      alert(`Ultravox Error: ${ultravoxError}`);
-      useUltravoxStore.setState({ error: null }); // Clear error after showing
-    }
-  }, [ultravoxError]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onUpdateNodeData = useCallback(
     (nodeId: string, newData: Partial<CustomNodeData>) => {
@@ -191,78 +156,31 @@ export default function HomePage() {
       alert('ReactFlow instance not available.');
       return;
     }
-    // No longer need to check for uvSessionRef.current as store handles session initialization
 
     setIsSubmitting(true);
-    const flow = rfInstance.toObject(); // We still need the flow for agent configuration
-    console.log("Current flow for agent (nodes, edges):", flow.nodes, flow.edges);
+    const flow = rfInstance.toObject();
+    console.log("Current flow (nodes, edges):", flow.nodes, flow.edges);
     
-    // TODO: Replace this with your actual join URL generation logic!
-    // This URL will likely come from a backend that provisions the Ultravox call
-    // and potentially uses the flow data (nodes, edges) to configure the agent.
-    const placeholderJoinUrl = 'wss://your-ultravox-instance.com/ws/join/CALL_ID_HERE'; 
-    alert('Using a PLACEHOLDER joinUrl. The call will likely not connect to a configured agent. Replace this in onRunFlow with actual join URL generation logic.');
-    console.warn('Using placeholderJoinUrl:', placeholderJoinUrl, ' - The flow data (nodes, edges) is available here but not currently sent to a backend to configure the agent before joining.');
-
-    setJoinUrl(placeholderJoinUrl); // Set it in the store
-
-    try {
-      await startCall(); // Call startCall from the store
-      // The store will handle status updates. Any specific UI changes after starting can go here.
-      // For example, if you want to show an immediate alert:
-      // alert('Attempting to start call via store...');
-    } catch (error) {
-      // Error is now handled and alerted by the useEffect for ultravoxError
-      // or directly logged by the store's startCall action.
-      // We can keep setIsSubmitting(false) in a finally block if needed.
-      console.error('onRunFlow caught an error from startCall (this is usually handled by store):', error);
-    }
-
-    // It might be better to set isSubmitting to false based on sessionStatus changes
-    // e.g., when status becomes CONNECTING, IDLE, or DISCONNECTED after an attempt.
-    // For now, we'll set it to false here.
+    // TODO: Implement flow execution logic here
+    alert('Flow execution logic needs to be implemented');
+    
     setIsSubmitting(false);
-  }, [rfInstance, startCall, setJoinUrl]);
-
-  const handleLeaveCall = useCallback(async () => {
-    setIsSubmitting(true); // Indicate an operation is in progress
-    await leaveCall(); // Call leaveCall from the store
-    setIsSubmitting(false); // Reset after the attempt
-    // alert for success/failure is handled by ultravoxError effect or store logs
-  }, [leaveCall]);
-
-  // Ensure isActiveSession is always boolean for button disabled prop
-  const isActiveSession = !!(sessionStatus && 
-                           sessionStatus !== UltravoxSessionStatus.DISCONNECTED && 
-                           sessionStatus !== UltravoxSessionStatus.DISCONNECTING);
+  }, [rfInstance]);
 
   return (
     <div className="flex flex-col h-screen bg-background-start-rgb">
       <header className="bg-gray-900 text-white p-4 shadow-lg flex justify-between items-center z-20">
         <h1 className="text-xl font-bold tracking-tight">Voice Conversational Workflow Builder</h1>
         <div className="space-x-4 flex items-center">
-          <Button onClick={onSave} className="button-primary" disabled={isSubmitting || isActiveSession}>Save Flow</Button>
-          <Button onClick={onLoad} className="button-secondary" disabled={isSubmitting || isActiveSession}>Load Flow</Button>
+          <Button onClick={onSave} className="button-primary" disabled={isSubmitting}>Save Flow</Button>
+          <Button onClick={onLoad} className="button-secondary" disabled={isSubmitting}>Load Flow</Button>
           <Button 
             onClick={onRunFlow} 
             className="bg-green-500 hover:bg-green-600 text-white"
-            disabled={isSubmitting || 
-              sessionStatus === UltravoxSessionStatus.CONNECTING ||
-              sessionStatus === UltravoxSessionStatus.IDLE ||
-              sessionStatus === UltravoxSessionStatus.LISTENING ||
-              sessionStatus === UltravoxSessionStatus.SPEAKING ||
-              sessionStatus === UltravoxSessionStatus.THINKING // Added THINKING as an active state
-            }
+            disabled={isSubmitting}
           >
-            {isSubmitting ? 'Processing...' : 
-              (isActiveSession ? `Status: ${sessionStatus}` : 'Run Flow')
-            }
+            {isSubmitting ? 'Processing...' : 'Run Flow'}
           </Button>
-          {isActiveSession && (
-             <Button onClick={handleLeaveCall} className="bg-red-500 hover:bg-red-600 text-white" disabled={isSubmitting}>
-              Leave Call
-            </Button>
-          )}
         </div>
       </header>
       <div className="flex flex-grow overflow-hidden">
@@ -296,16 +214,6 @@ export default function HomePage() {
           )}
         </ReactFlowProvider>
       </div>
-      {transcripts.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gray-800 bg-opacity-90 text-white max-h-40 overflow-y-auto text-sm z-30">
-          <h4 className="font-semibold mb-2 text-gray-300">Live Transcript:</h4>
-          {transcripts.map((t, index) => (
-            <div key={index} className={`mb-1 p-1.5 rounded-md ${t.speaker === 'agent' ? 'text-blue-300' : 'text-green-300'}`}>
-              <strong>{t.speaker === 'agent' ? 'Agent' : 'User'}:</strong> {t.text} {t.isFinal ? '' : '...'}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
